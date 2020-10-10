@@ -2,8 +2,12 @@ extern crate clap;
 
 use clap::{Arg, App};
 
+use ariar::{parse_torrent,render_torrent};
+
 fn main() {
     let params = get_params();
+    let torrent_data = parse_torrent(&params).unwrap();
+    render_torrent(&torrent_data);
     println!("the params {}", params);
 }
 
