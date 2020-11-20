@@ -1,13 +1,25 @@
-extern crate clap;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_bytes;
+extern crate log;
+
+mod tracker;
+mod torrent;
+mod consts;
+mod config;
 
 use clap::{Arg, App};
+use tokio::prelude::*;
 
-use ariar::{parse_torrent,render_torrent};
+use torrent::{Torrent, render_torrent};
+use tracker::connect_to_tracker;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let params = get_params();
-    let torrent_data = parse_torrent(&params).unwrap();
+    let torrent_data = Torrent::new(&params).unwrap();
     render_torrent(&torrent_data);
+    let return_value = connect_to_tracker(&torrent_data).await;
     println!("the params {}", params);
 }
 

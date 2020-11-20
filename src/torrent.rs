@@ -1,18 +1,18 @@
 extern crate serde_bencode;
 extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_bytes;
+extern crate hex;
 
-use serde_bencode::de;
-use std::io::{self, Read};
+use serde_bencode::{de,ser};
+use std::io::Read;
 use serde_bytes::ByteBuf;
 use std::fs::File;
+use sha1::{Sha1, Digest};
+
 
 #[derive(Debug, Deserialize)]
 struct Node(String, i64);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct TorrentFile {
     path: Vec<String>,
     length: i64,
@@ -20,8 +20,8 @@ struct TorrentFile {
     md5sum: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-struct Info {
+#[derive(Debug, Deserialize,Serialize)]
+pub struct Info {
     name: String,
     pieces: ByteBuf,
     #[serde(rename="piece length")]
@@ -30,8 +30,7 @@ struct Info {
     md5sum: Option<String>,
     #[serde(default)]
     length: Option<i64>,
-    #[serde(default)]
-    files: Option<Vec<TorrentFile>>,
+    #[serde(default)] files: Option<Vec<TorrentFile>>,
     #[serde(default)]
     private: Option<u8>,
     #[serde(default)]
@@ -45,7 +44,7 @@ struct Info {
 pub struct Torrent {
     info: Info,
     #[serde(default)]
-    announce: Option<String>,
+    pub announce: Option<String>,
     #[serde(default)]
     nodes: Option<Vec<Node>>,
     #[serde(default)]
@@ -93,33 +92,39 @@ pub fn render_torrent(torrent: &Torrent) {
     }
 }
 
-pub fn parse_torrent(file_path: &String) -> Option<Torrent> {
-    let mut buffer = Vec::new();
+impl Torrent {
+    pub fn new(file_path: &String) -> Option<Torrent> {
+        let mut buffer = Vec::new();
 
-    let mut file_handle = File::open(file_path).unwrap();
-    match file_handle.read_to_end(&mut buffer) {
-        Ok(_) => Some(de::from_bytes::<Torrent>(&buffer).unwrap()),
-        Err(e) => {
-            eprintln!("Error {:?}", e);
-            None
-        }
-    }
-}
-
-/*
-fn main() {
-    let stdin = io::stdin();
-    let mut buffer = Vec::new();
-    let mut handle = stdin.lock();
-    match handle.read_to_end(&mut buffer) {
-        Ok(_) => {
-            match de::from_bytes::<Torrent>(&buffer) {
-                Ok(t) => render_torrent(&t),
-                Err(e) => println!("ERROR: {:?}", e),
+        let mut file_handle = File::open(file_path).unwrap();
+        match file_handle.read_to_end(&mut buffer) {
+            Ok(_) => Some(de::from_bytes::<Torrent>(&buffer).unwrap()),
+            Err(e) => {
+                eprintln!("Error {:?}", e);
+                None
             }
         }
-        Err(e) => println!("ERROR: {:?}", e),
+    }
 
+    /*
+     * return the total size to download from the info struct
+     */
+    pub fn get_download_size(&self) -> i64 {
+        let mut total_size: i64 = 0;
+        for file in self.info.files.as_ref().unwrap().iter() {
+            total_size += file.length;
+        }
+        total_size
+    }
+
+    /*
+     * Return sha1 of bencoded info dict
+     */
+    pub fn get_hashed_info(&self) -> String {
+        let bytes = ser::to_bytes::<Info>(&self.info).unwrap();
+
+        let mut hasher = Sha1::new();
+        hasher.update(bytes);
+        hex::encode(hasher.finalize().to_vec())
     }
 }
-*/

@@ -1,2 +1,5 @@
 /target
 *.torrent
+/.vscode
+.gdb_history
+*.pcapng
