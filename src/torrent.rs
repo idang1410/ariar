@@ -53,7 +53,7 @@ pub struct Torrent {
     httpseeds: Option<Vec<String>>,
     #[serde(default)]
     #[serde(rename="announce-list")]
-    announce_list: Option<Vec<Vec<String>>>,
+    pub announce_list: Option<Vec<Vec<String>>>,
     #[serde(default)]
     #[serde(rename="creation date")]
     creation_date: Option<i64>,

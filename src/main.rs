@@ -9,18 +9,19 @@ mod consts;
 mod config;
 
 use clap::{Arg, App};
-use tokio::prelude::*;
+use std::error::Error;
 
 use torrent::{Torrent, render_torrent};
 use tracker::connect_to_tracker;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>>{
     let params = get_params();
     let torrent_data = Torrent::new(&params).unwrap();
     render_torrent(&torrent_data);
-    let return_value = connect_to_tracker(&torrent_data).await;
+    let return_value = connect_to_tracker(&torrent_data).await?;
     println!("the params {}", params);
+    Ok(return_value)
 }
 
 /*
